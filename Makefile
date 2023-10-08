@@ -1,110 +1,77 @@
 
 
 CC=gcc
-CFLAGS=-g -Wall -Wextra -Werror
+CFLAGS=-g -Wall -Wextra -Werror -O0 -lc
 
-USRDIR=/usr/include/libmox
+INCDIR=/usr/include/libmox
+LIBDIR=/lib
+LIB=lib
 SRC=src
-INCL=include
 OBJ=obj
+
+# match source files in /src
 SRCS=$(wildcard $(SRC)/*.c)
-OBJS=$(patsubst $(SRC)/%.c, $(OBJ)/%.o,$(SRCS))
 
-# dtst
-DTST=$(SRC)/dtst
-DTSRC=$(wildcard $(DTST)/*.c)
-DTOBJ=$(patsubst $(DTST)/%.c,$(OBJ)/%.o,$(DTSRC))
+# match all object files build on all source files at top level /src.
+# currently this only builds util.o.
+OBJS=$(SRCS:$(SRC)/%.c=$(OBJ)/%.o)
 
-# search
-SEARCH=$(SRC)/search
-SRSRC=$(wildcard $(SEARCH)/*.c)
-SROBJ=$(patsubst $(SEARCH)/%.c,$(OBJ)/%.o,$(SRSRC))
+# match all object files in obj/
+OF=$(wildcard $(OBJ)/*.o)
 
-# sort
-SORT=$(SRC)/sort
-SOSRC=$(wildcard $(SORT)/*.c)
-SOOBJ=$(patsubst $(SORT)/%.c,$(OBJ)/%.o,$(SOSRC))
+all: clean
+all: $(OBJ) $(LIB) $(OBJS) sub $(LIB)/libmox.so $(LIB)/libmox.a
 
-# math
-MATH=$(SRC)/math
-MSRC=$(wildcard $(MATH)/*.c)
-MOBJ=$(patsubst $(MATH)/%.c,$(OBJ)/%.o,$(MSRC))
-
-# tests
-TEST=tests
-TESTS=$(wildcard $(TEST)/t_*.c)
-TESTBINS=$(patsubst $(TEST)/%.c, $(TEST)/bin/%, $(TESTS))
-
-
-LIBDIR=lib
-LIB=$(LIBDIR)/libmox.so
-STATIC_LIB=$(LIBDIR)/libmox.a
-
-all: clean $(LIB) $(STATIC_LIB) test
-
-release: CFLAGS=-Wall -O2 -DNDEBUG
-release: clean
-release: $(LIB) $(STATIC_LIB)
-
-# libadd.so: add.c add.h
-# 	$(CC) $(CFLAGS) -fPIC -shared -o $@ add.c -lc
-$(LIB): $(LIBDIR) $(OBJ) $(OBJS) $(SROBJ) $(SOOBJ) $(MOBJ) $(DTOBJ) perftest
-	$(RM) $(LIB)
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ $(OBJS) $(SROBJ) $(SOOBJ) $(MOBJ) $(DTOBJ) -lc
-
-$(STATIC_LIB): $(LIBDIR) $(OBJ) $(OBJS) $(SROBJ) $(SOOBJ) $(MOBJ) $(DTOBJ)
-	ar -cvrs $(STATIC_LIB) $(OBJS)
-
-$(OBJ)/%.o: $(SRC)/%.c $(INCL)/%.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(OBJ)/%.o: $(SEARCH)/%.c $(INCL)/%.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(OBJ)/%.o: $(DTST)/%.c $(INCL)/%.h
-	$(CC) $(CFLAGS) -fPIC -c $< -o $@
-
-$(OBJ)/%.o: $(SORT)/%.c $(INCL)/sort.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(OBJ)/%.o: $(MATH)/%.c $(INCL)/mmath.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(OBJ)/%.o: $(SRC)/%.c $(SRC)/%.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(OBJ)/%.o: $(SRC)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(TEST)/bin/%: $(TEST)/%.c
-	$(CC) $(CFLAGS) $< $(OBJS) $(SROBJ) $(MOBJ) $(SOOBJ) $(DTOBJ) -o $@ -lcriterion
-
-perftest: $(TEST)/perftest.c $(OBJ)/i_array.o $(SOOBJ)
-	$(CC) $(CFLAGS) $< $(OBJ)/i_array.o $(SOOBJ) -o ./$(TEST)/perftest
-
-$(TEST)/bin:
-	mkdir $@
-
+# targets for directories
 $(OBJ):
 	mkdir $@
 
-$(LIBDIR):
+$(LIB):
 	mkdir $@
 
-test: $(LIB) $(TEST)/bin $(TESTBINS)
-	for test in $(TESTBINS) ; do ./$$test --verbose; done
+# target to build utils
+$(OBJ)/%.o: $(SRC)/%.c $(SRC)/%.h
+	$(CC) $(CFLAGS) -c $< -o $@
 
+# recurse build step into src subdirectories where the corresponding makefile
+# is being called
+sub:
+	$(MAKE) -C src/adts
+	$(MAKE) -C src/math
+	$(MAKE) -C src/search
+	$(MAKE) -C src/sort
+
+# build shared object libmox.so
+$(LIB)/libmox.so: $(OF)
+	$(RM) $(LIB)/libmox.so
+	$(CC) $(CFLAGS) -fPIC -shared -o $@ $(OF)
+
+# build static archive libmox.a
+$(LIB)/libmox.a: $(OF)
+	ar -cvrs $@ $(OF)
+
+
+#-----------------------------------------------------#
+# 				  Targets for tests   				  #
+#-----------------------------------------------------#
+test:
+	$(MAKE) test -C tests
 
 perf:
-	rm ./tests/perftest
-	make perftest
-	./tests/perftest $(LOOPS)
+	$(MAKE) perf
 
+
+# Installation targets
 install:
-	rm -rf $(USRDIR)
-	mkdir $(USRDIR)
-	cp -r $(INCL)/* $(USRDIR)
-	cp $(LIB) /lib
+	rm -rf $(INCDIR)
+	mkdir $(INCDIR)
+	cp include/* $(INCDIR)
+	cp $(LIB)/libmox.so $(LIBDIR)
 
+uninstall:
+	rm -rf $(INCDIR)
+	rm $(LIBDIR)/libmox.so
+
+# delete build artifacts
 clean:
-	$(RM) -r $(LIBDIR) $(OBJ) $(TEST)/bin $(TEST)/perftest compile_commands.json .cache
+	$(RM) -rf $(LIB) $(OBJ) tests/bin

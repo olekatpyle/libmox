@@ -4,35 +4,35 @@
 #include "i_array.h"
 
 /**
-* Bubble sort algorithm
-*
-* @param ia the i_array struct to sort
-* @return pointer to sorted i_array
-*/
+ * Bubble sort algorithm
+ *
+ * @param ia the i_array struct to sort
+ * @return pointer to sorted i_array
+ */
 i_array *bubble_sort(i_array *ia);
 
 /**
-* Selection sort algorithm
-*
-* @param ia the i_array struct to sort
-* @return pointer to sorted i_array
-*/
+ * Selection sort algorithm
+ *
+ * @param ia the i_array struct to sort
+ * @return pointer to sorted i_array
+ */
 i_array *selection_sort(i_array *ia);
 
 /**
-* Insertion sort algorithm
-*
-* @param ia the i_array struct to sort
-* @return pointer to sorted i_array
-*/
+ * Insertion sort algorithm
+ *
+ * @param ia the i_array struct to sort
+ * @return pointer to sorted i_array
+ */
 i_array *insertion_sort(i_array *ia);
 
 /**
-* Merge sort algorithm
-*
-* @param ia the i_array struct to sort
-* @return pointer to sorted i_array
-*/
+ * Merge sort algorithm
+ *
+ * @param ia the i_array struct to sort
+ * @return pointer to sorted i_array
+ */
 i_array *merge_sort(i_array *ia);
 
 /**

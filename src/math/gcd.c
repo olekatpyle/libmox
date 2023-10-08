@@ -1,13 +1,12 @@
-#include "../../include/mmath.h"
+#include "../../include/math.h"
 #include <stdint.h>
 
-uint64_t gcd(uint64_t a, uint64_t b)
-{
-	if (a == b)
-		return a;
+uint64_t gcd(uint64_t a, uint64_t b) {
+  if (a == b)
+    return a;
 
-	if (a > b)
-		return gcd(a - b, b);
-	else
-		return gcd(a, b - a);
+  if (a > b)
+    return gcd(a - b, b);
+  else
+    return gcd(a, b - a);
 }
